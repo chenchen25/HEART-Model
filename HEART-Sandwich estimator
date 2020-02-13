@@ -1,48 +1,58 @@
 fit.MAR <- HEART.PW.gammaFrailty(data,BaselinePieces,ini=ini.value);
+results.M <- c(fit.MAR$beta[1],fit.MAR$theta[1],fit.MAR$alpha[,1],fit.MAR$Convergence);
 
-abdata<-odata[odata$Event==0,]
+
+abdata<-data[data$Event==0,]
 x<-abdata[,4]
 tau<-abdata$Time
-n<-as.vector(table(odata$ID))-1
+nn<-as.numeric(row.names(abdata))
+nn0<-as.numeric(row.names(data))
+n<-c(nn[1]-nn0[1],diff(nn)-1)
 etheta<-fit.MAR$theta[1]
 ebeta<-fit.MAR$beta[1]
 ealpha<-fit.MAR$alpha[,1]
-mu<-exp(x*ebeta)*mu0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,odata$Time[odata$Event==0])
+mu<-exp(x*ebeta)*(ealpha[1]*(tau>=28)+ealpha[2]*(tau>=56)+ealpha[3]*(tau>=84)+ealpha[4]*(tau>=112)+ealpha[5]*(tau>=140)+ealpha[6]*(tau>=168))*28
 l11<--sum((mu*etheta*(etheta+n)*x^2)/(etheta+mu)^2)
 l12<-sum(mu*x*(n-mu)/(etheta+mu)^2)
-dmu<-matrix(NA,nrow=length(n),ncol=length(BaselinePieces))
+dmu<-matrix(NA,nrow=length(n),ncol=6)
 for (i in 1:length(n)){
-dmu[i,]<-dmu0_alpha(tt=tau[i], BaselinePieces=BaselinePieces)
+  dmu[i,1]<-28*(tau[i]>=28)
+  dmu[i,2]<-28*(tau[i]>=56)
+  dmu[i,3]<-28*(tau[i]>=84)
+  dmu[i,4]<-28*(tau[i]>=112)
+  dmu[i,5]<-28*(tau[i]>=140)
+  dmu[i,6]<-28*(tau[i]>=168)
 }
 l13<--colSums((n+etheta)*etheta*x*exp(x*ebeta)/(etheta+mu)^2*dmu)
 
 tm<-rep(0,length(n))
 for (i in 1:length(n)){
-if (n[i]>=1){
-for (j in 1:n[i]){
-tm[i]<-tm[i]+1/(etheta+j-1)^2
-}
-}
+  if (n[i]>=1){
+    for (j in 1:n[i]){
+      tm[i]<-tm[i]+1/(etheta+j-1)^2
+    }
+  }
 }
 l22<-sum(1/etheta-tm-1/(etheta+mu)-(mu-n)/(etheta+mu)^2)
 l23<-colSums((n-mu)/(etheta+mu)^2*exp(x*ebeta)*dmu)
-tm1<-tm2<-matrix(0,nrow=length(BaselinePieces),ncol=length(BaselinePieces))
+tm1<-tm2<-matrix(0,nrow=6,ncol=6)
 for (i in 1:length(n)){
-pdata<-odata[(odata$ID==i),]
-t<-pdata$Time
-rho0<-rho_0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,t);
-drho1<-(t>0 & t<=42)*1
-drho2<-(t>42 & t<=84)*1
-drho3<-(t>84 & t<=126)*1
-drho4<-(t>126 & t<=168)*1
-drho5<-(t>168 & t<=206)*1
-drho<-rbind(drho1,drho2,drho3,drho4,drho5)
-tm2<-tm2+(n[i]+etheta)/(etheta+mu[i])^2*exp(2*x[i]*ebeta)*dmu[i,]%*%t(dmu[i,])
-if(n[i]>=1){
-for (j in 1:n[i]){
-tm1<-tm1-1/rho0[j]^2*drho[,j]%*%t(drho[,j])
-}
-}
+  pdata<-data[(data$ID==i),]
+  t<-pdata$Time
+  rho0<-ealpha[1]*(t>=0 & t<28)+ealpha[2]*(t>=28 & t<56)+ealpha[3]*(t>=56 & t<84)+ealpha[4]*(t>=84 & t<112)+ealpha[5]*(t>=112 & t<140)+ealpha[6]*(t>=140 & t<168)
+  drho1<-(t>=0 & t<28)*1
+  drho2<-(t>=28 & t<56)*1
+  drho3<-(t>=56 & t<84)*1
+  drho4<-(t>=84 & t<112)*1
+  drho5<-(t>=112 & t<140)*1
+  drho6<-(t>=140 & t<168)*1
+  drho<-rbind(drho1,drho2,drho3,drho4,drho5,drho6)
+  tm2<-tm2+(n[i]+etheta)/(etheta+mu[i])^2*exp(2*x[i]*ebeta)*dmu[i,]%*%t(dmu[i,])
+  if(n[i]>=1){
+    for (j in 1:n[i]){
+      tm1<-tm1-1/rho0[j]^2*drho[,j]%*%t(drho[,j])
+    }
+  }
 }
 l33<-tm1+tm2
 fisher<-cbind(c(l11,l12,l13),c(l12,l22,l23),rbind(l13,l23,l33))
@@ -52,35 +62,39 @@ J<--fisher
 l1<-(n-mu)/(etheta+mu)*etheta*x
 ttm<-rep(0,length(n))
 for (i in 1:length(n)){
-if (n[i]>=1){
-for (j in 1:n[i]){
-ttm[i]<-ttm[i]+1/(etheta+j-1)
-}
-}
+  if (n[i]>=1){
+    for (j in 1:n[i]){
+      ttm[i]<-ttm[i]+1/(etheta+j-1)
+    }
+  }
 }
 l2<-1+log(etheta)+ttm-(n+etheta)/(etheta+mu)-log(etheta+mu)
 
 
 
-l3t<-matrix(0,nrow=length(n),ncol=length(BaselinePieces))
+l3t<-matrix(0,nrow=length(n),ncol=6)
 lcom<--(n+etheta)/(etheta+mu)*exp(x*ebeta)*dmu
 for (i in 1:length(n)){
-pdata<-odata[(odata$ID==i),]
-t<-pdata$Time
-rho0<-rho_0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,t);
-if (n[i]>=1){
-for (j in 1:n[i]){
-l3t[i,1]<-l3t[i,1]+(t[j]>0 & t[j]<=42)/rho0[j]
-l3t[i,2]<-l3t[i,2]+(t[j]>42 & t[j]<=84)/rho0[j]
-l3t[i,3]<-l3t[i,3]+(t[j]>84 & t[j]<=126)/rho0[j]
-l3t[i,4]<-l3t[i,4]+(t[j]>126 & t[j]<=168)/rho0[j]
-l3t[i,5]<-l3t[i,5]+(t[j]>168 & t[j]<=206)/rho0[j]
-}
-}
+  pdata<-data[(data$ID==i),]
+  t<-pdata$Time
+  rho0<-ealpha[1]*(t>=0 & t<28)+ealpha[2]*(t>=28 & t<56)+ealpha[3]*(t>=56 & t<84)+ealpha[4]*(t>=84 & t<112)+ealpha[5]*(t>=112 & t<140)+ealpha[6]*(t>=140 & t<168)
+  if (n[i]>=1){
+    for (j in 1:n[i]){
+      l3t[i,1]<-l3t[i,1]+(t[j]>=0 & t[j]<28)/rho0[j]
+      l3t[i,2]<-l3t[i,2]+(t[j]>=28 & t[j]<56)/rho0[j]
+      l3t[i,3]<-l3t[i,3]+(t[j]>=56 & t[j]<84)/rho0[j]
+      l3t[i,4]<-l3t[i,4]+(t[j]>=84 & t[j]<112)/rho0[j]
+      l3t[i,5]<-l3t[i,5]+(t[j]>=112 & t[j]<140)/rho0[j]
+      l3t[i,6]<-l3t[i,6]+(t[j]>=140 & t[j]<168)/rho0[j]
+    }
+  }
 }
 l3<-l3t+lcom
 l<-cbind(l1,l2,l3)
 V<-t(l)%*%l
 
-result<-c(ebeta,etheta,ealpha)
+####HEART-FISHER
+fsvar<-diag(solve(J))
+####HEART-SANDWICH####
 swvar<-diag(solve(J)%*%V%*%solve(J))
+
