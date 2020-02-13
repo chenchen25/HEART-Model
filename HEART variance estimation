@@ -7,7 +7,7 @@ BL.pieces  <- seq(0,maxT,length=length(hz.pieces)+1)[-1];
 
 ####Fit the HEART Model####
 fit.MAR <- HEART.PW.gammaFrailty(dataM=data,BaselinePieces=BL.pieces,ini=c(bta,theta,hz.pieces))
-results.M <- c(fit.MAR$beta[1],fit.MAR$theta[1],fit.MAR$alpha[,1],fit.MAR$Convergence);
+results.M <- c(fit.MAR$beta[1],fit.MAR$theta[1],fit.MAR$alpha[,1]);
 
 ####Variance Estimation####
 abdata<-data[data$Event==0,]
@@ -101,7 +101,12 @@ l3<-l3t+lcom
 l<-cbind(l1,l2,l3)
 V<-t(l)%*%l
 
-####HEART-FISHER
+####HEART-FISHER####
 fsvar<-diag(solve(J))
 ####HEART-SANDWICH####
 swvar<-diag(solve(J)%*%V%*%solve(J))
+
+####Output####
+results.M
+fsvar
+swvar
