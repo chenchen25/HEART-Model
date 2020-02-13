@@ -1,7 +1,15 @@
+####Initial value####
+BaselinePieces  <- c(42,84,126,168);
+bta  <- 0;
+theta  <- 0.5;
+hz.pieces  <- 0.3*rep(1,length(BaselinePieces));
+ini.value = c(bta,theta,hz.pieces);
+
+####Fit the model####
 fit.MAR <- HEART.PW.gammaFrailty(data,BaselinePieces,ini=ini.value);
 results.M <- c(fit.MAR$beta[1],fit.MAR$theta[1],fit.MAR$alpha[,1],fit.MAR$Convergence);
 
-
+####Variance estimation####
 abdata<-data[data$Event==0,]
 x<-abdata[,4]
 tau<-abdata$Time
