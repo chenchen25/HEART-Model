@@ -1,0 +1,86 @@
+fit.MAR <- HEART.PW.gammaFrailty(data,BaselinePieces,ini=ini.value);
+
+abdata<-odata[odata$Event==0,]
+x<-abdata[,4]
+tau<-abdata$Time
+n<-as.vector(table(odata$ID))-1
+etheta<-fit.MAR$theta[1]
+ebeta<-fit.MAR$beta[1]
+ealpha<-fit.MAR$alpha[,1]
+mu<-exp(x*ebeta)*mu0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,odata$Time[odata$Event==0])
+l11<--sum((mu*etheta*(etheta+n)*x^2)/(etheta+mu)^2)
+l12<-sum(mu*x*(n-mu)/(etheta+mu)^2)
+dmu<-matrix(NA,nrow=length(n),ncol=length(BaselinePieces))
+for (i in 1:length(n)){
+dmu[i,]<-dmu0_alpha(tt=tau[i], BaselinePieces=BaselinePieces)
+}
+l13<--colSums((n+etheta)*etheta*x*exp(x*ebeta)/(etheta+mu)^2*dmu)
+
+tm<-rep(0,length(n))
+for (i in 1:length(n)){
+if (n[i]>=1){
+for (j in 1:n[i]){
+tm[i]<-tm[i]+1/(etheta+j-1)^2
+}
+}
+}
+l22<-sum(1/etheta-tm-1/(etheta+mu)-(mu-n)/(etheta+mu)^2)
+l23<-colSums((n-mu)/(etheta+mu)^2*exp(x*ebeta)*dmu)
+tm1<-tm2<-matrix(0,nrow=length(BaselinePieces),ncol=length(BaselinePieces))
+for (i in 1:length(n)){
+pdata<-odata[(odata$ID==i),]
+t<-pdata$Time
+rho0<-rho_0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,t);
+drho1<-(t>0 & t<=42)*1
+drho2<-(t>42 & t<=84)*1
+drho3<-(t>84 & t<=126)*1
+drho4<-(t>126 & t<=168)*1
+drho5<-(t>168 & t<=206)*1
+drho<-rbind(drho1,drho2,drho3,drho4,drho5)
+tm2<-tm2+(n[i]+etheta)/(etheta+mu[i])^2*exp(2*x[i]*ebeta)*dmu[i,]%*%t(dmu[i,])
+if(n[i]>=1){
+for (j in 1:n[i]){
+tm1<-tm1-1/rho0[j]^2*drho[,j]%*%t(drho[,j])
+}
+}
+}
+l33<-tm1+tm2
+fisher<-cbind(c(l11,l12,l13),c(l12,l22,l23),rbind(l13,l23,l33))
+#sqrt(diag(solve(-fisher)))
+J<--fisher
+
+l1<-(n-mu)/(etheta+mu)*etheta*x
+ttm<-rep(0,length(n))
+for (i in 1:length(n)){
+if (n[i]>=1){
+for (j in 1:n[i]){
+ttm[i]<-ttm[i]+1/(etheta+j-1)
+}
+}
+}
+l2<-1+log(etheta)+ttm-(n+etheta)/(etheta+mu)-log(etheta+mu)
+
+
+
+l3t<-matrix(0,nrow=length(n),ncol=length(BaselinePieces))
+lcom<--(n+etheta)/(etheta+mu)*exp(x*ebeta)*dmu
+for (i in 1:length(n)){
+pdata<-odata[(odata$ID==i),]
+t<-pdata$Time
+rho0<-rho_0(par.BaselinePW=ealpha, BaselinePieces=BaselinePieces,t);
+if (n[i]>=1){
+for (j in 1:n[i]){
+l3t[i,1]<-l3t[i,1]+(t[j]>0 & t[j]<=42)/rho0[j]
+l3t[i,2]<-l3t[i,2]+(t[j]>42 & t[j]<=84)/rho0[j]
+l3t[i,3]<-l3t[i,3]+(t[j]>84 & t[j]<=126)/rho0[j]
+l3t[i,4]<-l3t[i,4]+(t[j]>126 & t[j]<=168)/rho0[j]
+l3t[i,5]<-l3t[i,5]+(t[j]>168 & t[j]<=206)/rho0[j]
+}
+}
+}
+l3<-l3t+lcom
+l<-cbind(l1,l2,l3)
+V<-t(l)%*%l
+
+result<-c(ebeta,etheta,ealpha)
+swvar<-diag(solve(J)%*%V%*%solve(J))
