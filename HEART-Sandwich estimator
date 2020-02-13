@@ -1,15 +1,13 @@
-####Initial value####
-BaselinePieces  <- c(42,84,126,168);
-bta  <- 0;
 theta  <- 0.5;
-hz.pieces  <- 0.3*rep(1,length(BaselinePieces));
-ini.value = c(bta,theta,hz.pieces);
+maxT  <- 168;
+bta  <-  0.3;
+hz.pieces  <- c(0.13,0.13,0.12,0.11,0.14,0.16);
+BL.pieces  <- seq(0,maxT,length=length(hz.pieces)+1)[-1];
 
-####Fit the model####
-fit.MAR <- HEART.PW.gammaFrailty(data,BaselinePieces,ini=ini.value);
+fit.MAR <- HEART.PW.gammaFrailty(dataM=data,BaselinePieces=BL.pieces,ini=c(bta,theta,hz.pieces))
 results.M <- c(fit.MAR$beta[1],fit.MAR$theta[1],fit.MAR$alpha[,1],fit.MAR$Convergence);
 
-####Variance estimation####
+
 abdata<-data[data$Event==0,]
 x<-abdata[,4]
 tau<-abdata$Time
@@ -105,4 +103,3 @@ V<-t(l)%*%l
 fsvar<-diag(solve(J))
 ####HEART-SANDWICH####
 swvar<-diag(solve(J)%*%V%*%solve(J))
-
